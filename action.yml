@@ -1,0 +1,45 @@
+name: 'Setup AWS and Docker'
+description: 'Setup combined actions for using AWS and Docker (self-hosted)'
+
+inputs:
+  deploy-host:
+    description: 'SSH host spec to deploy to'
+    required: true
+  aws-access-key-id:
+    required: true
+  aws-secret-access-key:
+    required: true
+  aws-region:
+    default: us-east-1
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Login to ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Setup docker host
+      run: |
+        cat >>$GITHUB_ENV <<EOL
+        SSH_HOST=${{ inputs.deploy-host }}
+        DOCKER_HOST=ssh://${{ inputs.deploy-host }}
+        HOST_IP=$(ssh -G '${{ inputs.deploy-host }}' | awk '/^hostname / {print $2}')
+        EOL
+        echo Connecting to SSH host
+        ssh ${{ inputs.deploy-host }} echo Connection Success
+    
+    - name: Configure S3FS plugin
+      uses: soluciones-algoritmicas/setup-s3fs-plugin@v2
+      continue-on-error: true
+      with:
+        s3fs-access-key: ${{ inputs.aws-access-key-id }}
+        s3fs-secret-key: ${{ inputs.aws-secret-access-key }}
