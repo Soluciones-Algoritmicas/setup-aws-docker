@@ -28,6 +28,7 @@ runs:
       uses: aws-actions/amazon-ecr-login@v1
 
     - name: Setup docker host
+      shell: bash
       run: |
         cat >>$GITHUB_ENV <<EOL
         SSH_HOST=${{ inputs.deploy-host }}
